@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
 using WebApplication2.Dtos;
 using WebApplication2.Models;
@@ -16,20 +17,20 @@ namespace WebApplication2.Controllers
             _context = context;
         }
         [HttpGet]
-        public IActionResult GetAllEmployees()
+        public async Task <ActionResult> GetAllEmployees()
         {
-            var employeelist = _context.Employees.ToList();
+            var employeelist = await _context.Employees.ToListAsync();
             return Ok(employeelist);
         }
         [HttpGet("{id}")]
-        public IActionResult GetEmployee(int id)
+        public async Task<ActionResult> GetEmployee(int id)
         {
-            var employee = _context.Employees.FirstOrDefault(x => x.Id == id);
+            var employee =await _context.Employees.FirstOrDefaultAsync(x => x.Id == id);
             return Ok(employee);
         }
 
         [HttpPost]
-        public IActionResult AddEmployee(EmployeeDto employeeDto)
+        public async Task<ActionResult> AddEmployee(EmployeeDto employeeDto)
         {
             var employeeentity = new Employee()
             {
@@ -37,15 +38,15 @@ namespace WebApplication2.Controllers
                 Email = employeeDto.Email,
                 Phone = employeeDto.Phone,
             };
-            _context.Employees.Add(employeeentity);
-            _context.SaveChanges();
+           await _context.Employees.AddAsync(employeeentity);
+          await  _context.SaveChangesAsync();
             return Ok(employeeentity);
         }
         [HttpPut]
         [Route("{id}")]
-        public IActionResult UpdateEmployee(int id, EmployeeDto employeeDto)
+        public async Task<ActionResult> UpdateEmployee(int id, EmployeeDto employeeDto)
         {
-            var employee = _context.Employees.Find(id);
+            var employee = await _context.Employees.FindAsync(id);
             if (employee == null)
             {
                 return NotFound();
@@ -53,7 +54,7 @@ namespace WebApplication2.Controllers
             employee.Name = employeeDto.Name;
             employee.Email = employeeDto.Email;
             employee.Phone = employeeDto.Phone;
-            _context.SaveChanges();
+           await _context.SaveChangesAsync();
             return Ok(employee);
 
         }
@@ -61,15 +62,15 @@ namespace WebApplication2.Controllers
 
         [HttpDelete]
         [Route("{id}")]
-        public IActionResult DeleteEmployee(int id)
+        public async Task<ActionResult> DeleteEmployee(int id)
         {
-            var employee = _context.Employees.Find(id);
+            var employee = await _context.Employees.FindAsync(id);
             if (employee == null)
             {
                 return NotFound();
             }
             _context.Employees.Remove(employee);
-            _context.SaveChanges();
+           await  _context.SaveChangesAsync();
             return Ok();
         }
     }

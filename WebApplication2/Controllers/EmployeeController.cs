@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
 using WebApplication2.Dtos;
 using WebApplication2.Models;
+using WebApplication2.Repository;
 
 namespace WebApplication2.Controllers
 {
@@ -11,21 +12,29 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class EmployeeController : ControllerBase
     {
-        private readonly EmployeeDbcontext _context;
-        public EmployeeController(EmployeeDbcontext context)
+        private readonly EmployeeRepository _repository;
+        public EmployeeController(EmployeeRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
         [HttpGet]
-        public async Task <ActionResult> GetAllEmployees()
+        public async Task<ActionResult> GetAllEmployees()
         {
-            var employeelist = await _context.Employees.ToListAsync();
-            return Ok(employeelist);
+            var employees = await _repository.GetAllAsync();
+            var employeeDtos = employees.Select(s => new EmployeeDto
+            {
+                Name = s.Name,
+                Email = s.Email,
+                Phone = s.Phone
+            });
+            return Ok(employeeDtos);
         }
+
         [HttpGet("{id}")]
         public async Task<ActionResult> GetEmployee(int id)
         {
-            var employee =await _context.Employees.FirstOrDefaultAsync(x => x.Id == id);
+            var employee = await _repository.GetByIdAsync(id);
+            if (employee == null) return NotFound();
             return Ok(employee);
         }
 
@@ -38,25 +47,23 @@ namespace WebApplication2.Controllers
                 Email = employeeDto.Email,
                 Phone = employeeDto.Phone,
             };
-           await _context.Employees.AddAsync(employeeentity);
-          await  _context.SaveChangesAsync();
+            var employee = await _repository.AddAsync(employeeentity);
             return Ok(employeeentity);
         }
-        [HttpPut]
-        [Route("{id}")]
-        public async Task<ActionResult> UpdateEmployee(int id, EmployeeDto employeeDto)
-        {
-            var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
-            {
-                return NotFound();
-            }
-            employee.Name = employeeDto.Name;
-            employee.Email = employeeDto.Email;
-            employee.Phone = employeeDto.Phone;
-           await _context.SaveChangesAsync();
-            return Ok(employee);
 
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateEmployee(int id, EmployeeDto dto)
+        {
+            var update = new Employee
+            {
+                Name = dto.Name,
+                Email = dto.Email,
+                Phone = dto.Phone
+            };
+
+            var updated = await _repository.UpdateAsync(id, update);
+            if (updated == null) return NotFound();
+            return Ok(updated);
         }
 
 
@@ -64,13 +71,8 @@ namespace WebApplication2.Controllers
         [Route("{id}")]
         public async Task<ActionResult> DeleteEmployee(int id)
         {
-            var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
-            {
-                return NotFound();
-            }
-            _context.Employees.Remove(employee);
-           await  _context.SaveChangesAsync();
+            var success = await _repository.DeleteAsync(id);
+            if (!success) return NotFound();
             return Ok();
         }
     }
